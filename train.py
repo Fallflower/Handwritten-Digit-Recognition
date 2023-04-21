@@ -8,9 +8,9 @@ import os
 
 
 def train(device = "cuda:0"):
-    epochs = 200
+    epochs = 20
     learning_rate = 0.001
-    batchsize = 64
+    batchsize = 1024
 
     trainDataLoader = dataloader.DataLoader(
         dataset=trainDataset,
@@ -26,25 +26,34 @@ def train(device = "cuda:0"):
     for e in range(epochs):
         total_loss = 0
         total_correct_num = 0
-        for x, y in trainDataLoader:
+        total_num = 0
+        for batch_id, (x, y) in enumerate(trainDataLoader):
             y_pre = model(x.to(device))
 
             # compute accuracy and loss
-            correct_num = (y_pre.argmax(dim=1) == y.to(device)).sum()
-            loss = loss_func(y_pre, y.to(device))
 
+            correct_num = (y_pre.argmax(dim=1) == y.to(device)).sum()
+            total_correct_num += correct_num
+            # print(correct_num)
+            loss = loss_func(y_pre, y.to(device))
+            total_loss += loss.item() * batchsize
+            # print(loss.item())
+
+            total_num += batchsize
             # backward and optimize
             loss.backward()
             optimizer_Adam.step()
             optimizer_Adam.zero_grad()
 
-            # print training info
+            # break
+        acc = total_correct_num / total_num
+        Loss = total_loss / total_num
         print(
-            f"Epoch [{e + 1}/{epochs}] Loss: {loss.item():.4f} Acc: {acc:.4f}")
+            f"Epoch [{e + 1}/{epochs}] Loss: {Loss:.4f} Acc: {acc:.4f}")
 
         # break after first batch for testing purposes
-        break
-
+        # break
+    torch.save(model, 'models/1.pt')
 
 def test(model_name, device='cuda:0'):
     batchsize = 64
@@ -55,39 +64,42 @@ def test(model_name, device='cuda:0'):
     )
 
     model = torch.load(model_name)
+    model.to(device)
 
     # set the model to evaluation mode
     model.eval()
 
+    loss_func = F.nll_loss
+
     # disable gradient calculation
     with torch.no_grad():
         # iterate over the evaluation data loader
-        for inputs, targets in testDataLoader:
-            # move the data to the device (GPU or CPU)
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-
+        total_loss = 0
+        total_correct_num = 0
+        total_num = 0
+        for x, y in testDataLoader:
             # forward pass
-            outputs = model(inputs)
+            y_pre = model(x.to(device))
 
             # compute the loss
-            loss = nn.CrossEntropyLoss()(outputs, targets)
+            loss = loss_func(y_pre, y.to(device))
 
             # compute the accuracy
-            preds = torch.argmax(outputs, dim=1)
-            acc = (preds == targets).float().mean()
+            preds = torch.argmax(y_pre, dim=1)
+            correct_num = (preds == y.to(device)).sum()
 
             # aggregate the metrics
-            total_loss += loss.item() * inputs.size(0)
-            total_acc += acc.item() * inputs.size(0)
+            total_loss += loss.item() * batchsize
+            total_correct_num += correct_num
+            total_num += batchsize
 
         # compute the final evaluation metrics
-        avg_loss = total_loss / len(dataset)
-        avg_acc = total_acc / len(dataset)
+        loss = total_loss / total_num
+        acc = total_correct_num / total_num
 
     # print or log the evaluation metrics
-    print(f"Validation loss: {avg_loss:.4f}")
-    print(f"Validation accuracy: {avg_acc:.4f}")
+    print(f"Validation loss: {loss:.4f}")
+    print(f"Validation accuracy: {acc:.4f}")
 
 
 

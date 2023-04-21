@@ -1,5 +1,6 @@
-from train import train
+from train import train, test
 
 
 if __name__ == '__main__':
-    train()
+    # train()
+    test('models/1.pt')

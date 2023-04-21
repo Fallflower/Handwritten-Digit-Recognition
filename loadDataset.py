@@ -11,7 +11,7 @@ def load_data(root, file_name, label_file_name):
         y = np.frombuffer(f.read(), np.uint8, offset=8)
     length = len(y)
     with gzip.open(os.path.join(root, file_name), 'rb') as imgf:
-        x = np.frombuffer(imgf.read(), np.uint8, offset=16).reshape(length, 28, 28)
+        x = np.frombuffer(imgf.read(), np.uint8, offset=16).reshape(length, 1, 28, 28)
     return x, y, length
 
 
@@ -24,7 +24,9 @@ class LoadDataset(dataset.Dataset):
         self.transform = transform
 
     def __getitem__(self, i):
-        img, target = self.x[i], self.y[i]
+        img, target = self.x[i].copy(), self.y[i]
+        # print(img.shape)
+        # print((target))
         if self.transform is not None:
             img = self.transform(img)
         return img, target
@@ -34,8 +36,9 @@ class LoadDataset(dataset.Dataset):
 
 
 trans = transforms.Compose([
+    # transforms.Grayscale(num_output_channels=1),
     transforms.ToTensor(),
-    transforms.Normalize(mean=0.1307, std=0.3081)
+    transforms.Normalize((0.1307,), (0.3081,)),
 ])
 
 trainDataset = LoadDataset(

@@ -19,7 +19,7 @@ class CNNModel(nn.Module):
             # nn.Dropout(0.3),
             nn.ReLU(),
             nn.Linear(128, 10),
-            nn.LogSoftmax()
+            nn.LogSoftmax(dim=1)
         )
 
     def forward(self, x):
