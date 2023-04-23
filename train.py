@@ -1,5 +1,6 @@
 from myModel import *
 import torch
+import os
 from torch import optim
 import torch.nn.functional as F
 from loadDataset import trainDataset, testDataset
@@ -7,10 +8,10 @@ from torch.utils.data import dataloader
 import os
 
 
-def train(device = "cuda:0"):
-    epochs = 20
-    learning_rate = 0.001
-    batchsize = 1024
+def train(set_model, epochs, learning_rate, batchsize, optimizer = optim.Adam, device = "cuda:0"):
+    # epochs = 20
+    # learning_rate = 0.001
+    # batchsize = 1024
 
     trainDataLoader = dataloader.DataLoader(
         dataset=trainDataset,
@@ -19,8 +20,8 @@ def train(device = "cuda:0"):
     )
 
     loss_func = F.nll_loss
-    model = CNNModel().to(device)
-    optimizer_Adam = optim.Adam(model.parameters(), lr=learning_rate)
+    model = set_model().to(device)
+    optimizer_Adam = optimizer(model.parameters(), lr=learning_rate)
 
     model.train()
     for e in range(epochs):
@@ -53,7 +54,7 @@ def train(device = "cuda:0"):
 
         # break after first batch for testing purposes
         # break
-    torch.save(model, 'models/1.pt')
+    torch.save(model, 'models/2.pt')
 
 def test(model_name, device='cuda:0'):
     batchsize = 64
