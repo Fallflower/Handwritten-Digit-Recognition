@@ -1,4 +1,5 @@
 from myModel import *
+from saveModelInfo import *
 import torch
 import os
 from torch import optim
@@ -8,10 +9,7 @@ from torch.utils.data import dataloader
 import os
 
 
-def train(set_model, epochs, learning_rate, batchsize, optimizer = optim.Adam, device = "cuda:0"):
-    # epochs = 20
-    # learning_rate = 0.001
-    # batchsize = 1024
+def train(set_model, epochs, learning_rate, batchsize, optimizer=optim.Adam, device="cuda:0"):
 
     trainDataLoader = dataloader.DataLoader(
         dataset=trainDataset,
@@ -22,6 +20,21 @@ def train(set_model, epochs, learning_rate, batchsize, optimizer = optim.Adam, d
     loss_func = F.nll_loss
     model = set_model().to(device)
     optimizer_Adam = optimizer(model.parameters(), lr=learning_rate)
+
+    mid = len(os.listdir('models')) + 1
+    mf_dic = {
+        'model_type': None,
+        'epoch': None,
+        'learning_rate': learning_rate,
+        'batch_size': batchsize,
+        'optim': 'Adam',
+        'loss': None,
+        'acc': None
+    }
+    if set_model == CNNModel:
+        mf_dic['model_type'] = 'CNNModel'
+    elif set_model == AttentionModel:
+        mf_dic['model_type'] = 'AttentionModel'
 
     model.train()
     for e in range(epochs):
@@ -51,12 +64,14 @@ def train(set_model, epochs, learning_rate, batchsize, optimizer = optim.Adam, d
         Loss = total_loss / total_num
         print(
             f"Epoch [{e + 1}/{epochs}] Loss: {Loss:.4f} Acc: {acc:.4f}")
+        mf_dic['epoch']=e;mf_dic['loss']=Loss;mf_dic['acc']=acc
+        save_model_info(mid, **mf_dic)
 
-        # break after first batch for testing purposes
-        # break
-    torch.save(model, 'models/2.pt')
+    torch.save(model, 'models/%d.pt' % mid)
+    return mid
 
-def test(model_name, device='cuda:0'):
+
+def test(model_id: int, device='cuda:0'):
     batchsize = 64
     testDataLoader = dataloader.DataLoader(
         dataset=testDataset,
@@ -64,7 +79,7 @@ def test(model_name, device='cuda:0'):
         shuffle=False
     )
 
-    model = torch.load(model_name)
+    model = torch.load('models/%d.pt' % model_id)
     model.to(device)
 
     # set the model to evaluation mode
@@ -98,10 +113,14 @@ def test(model_name, device='cuda:0'):
         loss = total_loss / total_num
         acc = total_correct_num / total_num
 
+    tf_dic = {
+        'loss': loss,
+        'acc': acc
+    }
+
     # print or log the evaluation metrics
     print(f"Validation loss: {loss:.4f}")
     print(f"Validation accuracy: {acc:.4f}")
 
-
-
+    save_test_info(model_id, **tf_dic)
 
